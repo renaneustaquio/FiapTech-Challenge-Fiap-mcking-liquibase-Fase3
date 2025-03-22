@@ -10,17 +10,21 @@ spec:
         - name: liquibase
           image: liquibase/liquibase
           env:
-            - name: DB_URL
+            - name: RAW_SECRET
               valueFrom:
                 secretKeyRef:
                   name: mckingapi-secrets
-                  key: DB_URL
+                  key: postgres-connection-string
+          command: ["sh", "-c"]
           args:
-            [
-              "--url=$(DB_URL)",
-              "--changeLogFile=/liquibase/changelog/db.changelog-master.xml",
-              "update"
-            ]
+            - |
+              HOST=$(echo $RAW_SECRET | sed -n 's/.*Host=\([^;]*\);.*/\1/p');
+              DB=$(echo $RAW_SECRET | sed -n 's/.*Database=\([^;]*\);.*/\1/p');
+              USER=$(echo $RAW_SECRET | sed -n 's/.*Username=\([^;]*\);.*/\1/p');
+              PASS=$(echo $RAW_SECRET | sed -n 's/.*Password=\([^;]*\).*/\1/p');
+              URL="jdbc:postgresql://$HOST/$DB?user=$USER&password=$PASS";
+              echo "Using JDBC URL: $URL";
+              liquibase --url=$URL --changeLogFile=/liquibase/changelog/db.changelog-master.xml update;
           volumeMounts:
             - name: changelog-volume
               mountPath: /liquibase/changelog
