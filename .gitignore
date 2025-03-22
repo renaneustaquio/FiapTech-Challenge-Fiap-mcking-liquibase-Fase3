@@ -1,0 +1,10 @@
+# Liquibase
+liquibase.properties
+liquibase.log
+
+# Logs gerais
+*.log
+
+# Sistemas operacionais
+.DS_Store
+Thumbs.db
