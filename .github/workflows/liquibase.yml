@@ -1,0 +1,53 @@
+name: Liquibase Migration
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  liquibase:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name mcking-cluster
+
+      - name: Create ConfigMap with Changelogs
+        run: |
+          kubectl create configmap liquibase-changelog-cm \
+            --from-file=liquibase/changelog/db.changelog-master.xml \
+            --from-file=liquibase/changelog/V1__init.sql \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Liquibase Job
+        run: |
+          kubectl apply -f k8s/liquibase-job.yaml
+
+      - name: Wait for Job to complete
+        run: |
+          kubectl wait --for=condition=complete job/liquibase-migration --timeout=300s
+
+      - name: Get Job logs
+        run: |
+          POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}')
+          kubectl logs $POD_NAME
