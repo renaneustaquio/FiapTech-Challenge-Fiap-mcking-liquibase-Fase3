@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: liquibase-migration
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: liquibase
+          image: liquibase/liquibase
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mckingapi-secrets
+                  key: DB_URL
+          args:
+            [
+              "--url=$(DB_URL)",
+              "--changeLogFile=/liquibase/changelog/db.changelog-master.xml",
+              "update"
+            ]
+          volumeMounts:
+            - name: changelog-volume
+              mountPath: /liquibase/changelog
+      volumes:
+        - name: changelog-volume
+          configMap:
+            name: liquibase-changelog-cm
+      restartPolicy: Never
+  backoffLimit: 1

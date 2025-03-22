@@ -9,7 +9,6 @@ on:
 jobs:
   liquibase:
     runs-on: ubuntu-latest
-    environment: development
 
     steps:
       - name: Checkout code
@@ -23,26 +22,31 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Get DB Credentials from AWS Secrets Manager
-        id: get_secret
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Update kubeconfig
         run: |
-          SECRET=$(aws secretsmanager get-secret-value --secret-id aws-secretsmanager-secret-teste-4 --query SecretString --output text)
+          aws eks update-kubeconfig --region us-east-1 --name mcking-cluster
 
-          # Extrair partes do segredo
-          HOST_PORT=$(echo $SECRET | sed -n 's/.*Host=\([^;]*\);.*/\1/p')
-          DATABASE=$(echo $SECRET | sed -n 's/.*Database=\([^;]*\);.*/\1/p')
-          USERNAME=$(echo $SECRET | sed -n 's/.*Username=\([^;]*\);.*/\1/p')
-          PASSWORD=$(echo $SECRET | sed -n 's/.*Password=\([^;]*\).*/\1/p')
-
-          JDBC_URL="jdbc:postgresql://$HOST_PORT/$DATABASE?user=$USERNAME&password=$PASSWORD"
-
-          echo "DB_URL=$JDBC_URL" >> $GITHUB_ENV
-
-      - name: Run Liquibase Migration
+      - name: Create ConfigMap with Changelogs
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/liquibase/changelog:/liquibase/changelog \
-            liquibase/liquibase \
-            --url="${{ env.DB_URL }}" \
-            --changeLogFile=changelog/db.changelog-master.xml \
-            update
+          kubectl create configmap liquibase-changelog-cm \
+            --from-file=liquibase/changelog/db.changelog-master.xml \
+            --from-file=liquibase/changelog/V1__init.sql \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Liquibase Job
+        run: |
+          kubectl apply -f k8s/liquibase-job.yaml
+
+      - name: Wait for Job to complete
+        run: |
+          kubectl wait --for=condition=complete job/liquibase-migration --timeout=300s
+
+      - name: Get Job logs
+        run: |
+          POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}')
+          kubectl logs $POD_NAME
