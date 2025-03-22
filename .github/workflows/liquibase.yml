@@ -1,7 +1,7 @@
 name: Liquibase Migration
 
 on:
-  pull_request:
+  push:
     branches:
       - master
   workflow_dispatch:
@@ -9,6 +9,7 @@ on:
 jobs:
   liquibase:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout code
