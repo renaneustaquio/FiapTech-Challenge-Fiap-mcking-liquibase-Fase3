@@ -28,13 +28,13 @@ Dando continuidade ao desenvolvimento do software para a lanchonete, teremos as 
 
 1. **Implementação de API Gateway e Function Serverless para autenticação via CPF:**
    - Integração ao sistema de autenticação para identificar o cliente.
-2. **Implementação de CI/CD segregado por repositórios:**
-   - **1 repositório** para o Lambda.
-   - **1 repositório** para infraestrutura VPC via Terraform.
-   - **1 repositório** para infraestrutura Kubernetes via Terraform.
-   - **1 repositório** para infraestrutura de banco de dados gerenciáveis via Terraform.
-   - **1 repositório** para a aplicação executada no Kubernetes.
-   - **1 repositório** para versionamento do banco com Liquibase.
+2. **Implementação de CI/CD segregado por repositórios - executar na seguinte ordem:**
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-terraform-vpc-Fase3)** para infraestrutura VPC via Terraform.
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-terraform-rds-Fase3)** para infraestrutura de banco de dados gerenciáveis via Terraform.
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-terraform-eks-Fase3)** para infraestrutura Kubernetes via Terraform.
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-lambda-Fase3)** para o Lambda.
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-mcking-liquibase-Fase3)** para versionamento do banco com Liquibase.
+   - 🔗 **[**1 repositório**](https://github.com/renaneustaquio/FiapTech-Challenge-Fiap-Mc_King-Fase3)** para a aplicação executada no Kubernetes.
 3. **Deploy automatizado via Actions:**
    - As branches `master` serão protegidas.
    - Os commits diretos serão bloqueados, exigindo o uso de Pull Requests.
@@ -72,19 +72,50 @@ O pipeline executa um Job Kubernetes no EKS que:
 - Monta os arquivos changelog via ConfigMap.
 - Executa o Liquibase automaticamente.
 
-### Rodando Manualmente com Docker
-Os dados de conexão (URL, usuário e senha) podem ser obtidos de forma segura através do AWS Secrets Manager, conforme configurado na infraestrutura.
+### Rodando Manualmente com Kubernetes (EKS)
 
-```bash
-docker run --rm \
-  -v $(pwd)/liquibase/changelog:/liquibase/changelog \
-  liquibase/liquibase \
-  --url="jdbc:postgresql://<host>:5432/<db>?user=<user>&password=<pass>" \
-  --changeLogFile=changelog/db.changelog-master.xml \
-  update
-```
+1. **Certifique-se de estar autenticado no cluster do EKS:**
+   Atualize o contexto do Kubernetes para acessar o cluster correto:
+   ```bash
+   aws eks update-kubeconfig --region us-east-1 --name mcking-cluster
 
----
+2. **Crie o ConfigMap com os arquivos do changelog**
+
+   Os arquivos de changelog (como `db.changelog-master.xml` e `V1__init.sql`) precisam ser transformados em um ConfigMap no Kubernetes. Use os comandos abaixo para criá-lo:
+
+   ```bash
+   $changelogMaster = "liquibase/changelog/db.changelog-master.xml"
+   $sqlInit = "liquibase/changelog/V1__init.sql"
+   kubectl create configmap liquibase-changelog-cm \
+   --from-file=$changelogMaster \
+   --from-file=$sqlInit \
+   --dry-run=client -o yaml | kubectl apply -f -
+
+3. **Aplique a Job manualmente**
+  Certifique-se de que você possui um arquivo de configuração YAML para executar o Liquibase como um Job no Kubernetes (como `k8s/liquibase-job.yaml`). Em seguida, aplique esse arquivo:
+
+   ```bash
+   kubectl apply -f k8s/liquibase-job.yaml
+
+4. **Aguarde a conclusão da Job**
+
+   Monitore a execução da Job até que ela seja concluída com sucesso. Utilize o comando abaixo para verificar:
+
+   ```bash
+   kubectl wait --for=condition=complete job/liquibase-migration --timeout=300s
+
+
+5. **Visualize os logs**
+   Caso queira inspecionar os logs para entender o que ocorreu durante a execução da Job, utilize o comando abaixo para obter o nome do Pod:
+
+   ```bash
+   POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}')
+
+   E, em seguida, visualize os logs:
+
+   ```bash
+   kubectl logs $POD_NAME
+
 
 ## 🗄️ Diagrama de Estrutura do Banco de Dados
 
