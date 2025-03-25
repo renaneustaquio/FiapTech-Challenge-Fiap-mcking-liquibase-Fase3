@@ -111,8 +111,8 @@ O pipeline executa um Job Kubernetes no EKS que:
    ```bash
    POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}'
 
+Em seguida visualize:
 
-   
    ```bash
    kubectl logs $POD_NAME
 
