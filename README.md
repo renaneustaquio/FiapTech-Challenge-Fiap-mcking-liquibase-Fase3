@@ -109,10 +109,10 @@ O pipeline executa um Job Kubernetes no EKS que:
    Caso queira inspecionar os logs para entender o que ocorreu durante a execução da Job, utilize o comando abaixo para obter o nome do Pod:
 
    ```bash
-   POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}')
-   
-   E, em seguida, visualize os logs:
+   POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}'
 
+   Em seguida visualize os logs:
+   
    ```bash
    kubectl logs $POD_NAME
 
