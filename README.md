@@ -108,21 +108,21 @@ O pipeline executa um Job Kubernetes no EKS que:
 5. **Visualize os logs**
    Caso queira inspecionar os logs para entender o que ocorreu durante a execução da Job, utilize o comando abaixo para obter o nome do Pod:
 
-   ```bash
-   POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}')
-   
-   E, em seguida, visualize os logs:
+      ```bash
+      POD_NAME=$(kubectl get pods --selector=job-name=liquibase-migration -o jsonpath='{.items[0].metadata.name}'
 
-   ```bash
-   kubectl logs $POD_NAME
+   Em seguida visualize:
+
+      ```bash
+      kubectl logs $POD_NAME
 
 
-## 🗄️ Diagrama de Estrutura do Banco de Dados
+### 🗄️ Diagrama de Estrutura do Banco de Dados
 
 Você pode visualizar o diagrama completo do banco de dados através do link abaixo:
 
 🔗 **[Ver Diagrama no dbdiagram.io](https://dbdiagram.io/d/DataBase-67e0135f75d75cc84421eb57)**
 
-### Visualização da Estrutura:
+###  Visualização da Estrutura:
 
 ![Diagrama ER do Banco de Dados](./assets/diagrama-er-banco.png)
