@@ -117,12 +117,12 @@ Em seguida visualize:
    kubectl logs $POD_NAME
 
 
-## 🗄️ Diagrama de Estrutura do Banco de Dados
+### 🗄️ Diagrama de Estrutura do Banco de Dados
 
 Você pode visualizar o diagrama completo do banco de dados através do link abaixo:
 
 🔗 **[Ver Diagrama no dbdiagram.io](https://dbdiagram.io/d/DataBase-67e0135f75d75cc84421eb57)**
 
-### Visualização da Estrutura:
+###  Visualização da Estrutura:
 
 ![Diagrama ER do Banco de Dados](./assets/diagrama-er-banco.png)
